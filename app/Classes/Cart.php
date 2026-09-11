@@ -6,6 +6,7 @@ use App\Exceptions\DisplayException;
 use App\Models\Coupon;
 use App\Models\Plan;
 use App\Models\Product;
+use App\Models\Tld;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\DB;
@@ -20,7 +21,7 @@ class Cart
             return new \App\Models\Cart;
         }
 
-        return $cart->load('items.plan', 'items.product', 'items.product.configOptions.children.plans.prices');
+        return $cart->load('items.plan', 'items.product', 'items.tld', 'items.product.configOptions.children.plans.prices');
     }
 
     public static function get()
@@ -78,7 +79,7 @@ class Cart
             'checkout_config' => $checkoutConfig,
             'quantity' => $quantity,
         ]);
-        $cart->load('items.plan', 'items.product', 'items.product.configOptions.children.plans.prices');
+        $cart->load('items.plan', 'items.product', 'items.tld', 'items.product.configOptions.children.plans.prices');
 
         if ($cart->coupon_id) {
             // Reapply coupon to the cart
@@ -97,6 +98,32 @@ class Cart
         }
 
         // Return index of the newly added item
+        return $item->id;
+    }
+
+    /**
+     * Add a domain registration or transfer to the cart. One line per domain name.
+     */
+    public static function addDomain(Tld $tld, string $name, int $years, string $action, float $price, ?string $authCode = null)
+    {
+        self::checkRateLimit();
+
+        $cart = self::createCart();
+        $existing = $cart->items()->where('tld_id', $tld->id)->where('domain', $name)->first();
+        self::ensureCartItemLimit($cart, $existing?->id);
+
+        $item = $cart->items()->updateOrCreate([
+            'id' => $existing?->id,
+        ], [
+            'tld_id' => $tld->id,
+            'domain' => $name,
+            'domain_action' => $action,
+            'years' => $years,
+            'auth_code' => $authCode,
+            'domain_price' => $price,
+            'quantity' => 1,
+        ]);
+
         return $item->id;
     }
 
@@ -138,14 +165,14 @@ class Cart
         if ($item) {
             $item->delete(); // We also want to trigger Eloquent events
         }
-        $cart->load('items.plan', 'items.product', 'items.product.configOptions.children.plans.prices');
+        $cart->load('items.plan', 'items.product', 'items.tld', 'items.product.configOptions.children.plans.prices');
     }
 
     public static function updateQuantity($index, $quantity)
     {
         $cart = self::get();
         if ($item = $cart->items()->where('id', $index)->first()) {
-            if ($item->product->allow_quantity !== 'combined') {
+            if ($item->isDomain() || $item->product->allow_quantity !== 'combined') {
                 return;
             }
         } else {

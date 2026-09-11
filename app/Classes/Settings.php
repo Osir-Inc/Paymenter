@@ -428,6 +428,24 @@ class Settings
                 ],
             ],
 
+            'domains' => [
+                [
+                    'name' => 'domain_markup',
+                    'label' => 'Markup on registrar prices (%)',
+                    'type' => 'number',
+                    'default' => 0,
+                    'required' => true,
+                    'description' => 'Applied when a registrar returns a live price with the availability check (premium domains, promotions). The TLD price grid is used when no live price is returned.',
+                ],
+                [
+                    'name' => 'domain_search_results',
+                    'label' => 'TLDs shown in domain search',
+                    'type' => 'number',
+                    'default' => 8,
+                    'required' => true,
+                    'description' => 'How many featured TLDs are checked next to the one the customer typed.',
+                ],
+            ],
             'cronjob' => [
                 [
                     'name' => 'cronjob_time',

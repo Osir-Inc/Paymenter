@@ -9,6 +9,15 @@
             @foreach (Cart::items() as $item)
             <div class="flex flex-row justify-between w-full bg-background-secondary p-3 rounded-md border border-neutral">
                 <div class="flex flex-col gap-1">
+                    @if ($item->isDomain())
+                    <h2 class="text-2xl font-semibold">
+                        {{ $item->domain_name }}
+                    </h2>
+                    <p class="text-sm">
+                        {{ $item->domain_action === 'transfer' ? __('domains.transfer_in') : __('domains.registration') }},
+                        {{ trans_choice(__('domains.years'), $item->years, ['count' => $item->years]) }}
+                    </p>
+                    @else
                     <h2 class="text-2xl font-semibold">
                         {{ $item->product->name }}
                     </h2>
@@ -17,6 +26,7 @@
                         {{ $option['option_name'] }}: {{ $option['value_name'] }}<br>
                         @endforeach
                     </p>
+                    @endif
                 </div>
                 <div class="flex flex-col justify-between items-end gap-4">
                     <h3 class="text-xl font-semibold p-1">
@@ -25,6 +35,14 @@
                         @endif
                     </h3>
                     <div class="flex flex-row gap-2">
+                        @if ($item->isDomain())
+                        <x-button.danger wire:click="removeProduct({{ $item->id }})" class="h-fit !w-fit">
+                            <x-loading target="removeProduct({{ $item->id }})" />
+                            <div wire:loading.remove wire:target="removeProduct({{ $item->id }})">
+                                {{ __('product.remove') }}
+                            </div>
+                        </x-button.danger>
+                        @else
                         @if ($item->product->allow_quantity == 'combined')
                         <div class="flex flex-row gap-1 items-center mr-4">
                             <x-button.secondary
@@ -52,6 +70,7 @@
                                 {{ __('product.remove') }}
                             </div>
                         </x-button.danger>
+                        @endif
                     </div>
                 </div>
             </div>

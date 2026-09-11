@@ -28,6 +28,11 @@ class Order extends Model implements Auditable
         return $this->hasMany(Service::class);
     }
 
+    public function domains()
+    {
+        return $this->hasMany(Domain::class);
+    }
+
     /**
      * Get the currency corresponding to the service.
      */
@@ -44,7 +49,7 @@ class Order extends Model implements Auditable
     public function total(): Attribute
     {
         return Attribute::make(
-            get: fn () => $this->services->sum(fn ($service) => $service->price * $service->quantity)
+            get: fn () => $this->services->sum(fn ($service) => $service->price * $service->quantity) + $this->domains->sum('price')
         );
     }
 

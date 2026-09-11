@@ -140,6 +140,28 @@ return [
                 'delete' => 'Delete Servers',
                 'deleteAny' => 'Bulk Delete Servers',
             ],
+            'registrars' => [
+                'create' => 'Create Registrars',
+                'update' => 'Update Registrars',
+                'viewAny' => 'View Registrars',
+                'delete' => 'Delete Registrars',
+                'deleteAny' => 'Bulk Delete Registrars',
+            ],
+            'tlds' => [
+                'create' => 'Create TLDs',
+                'update' => 'Update TLDs',
+                'viewAny' => 'View TLDs',
+                'delete' => 'Delete TLDs',
+                'deleteAny' => 'Bulk Delete TLDs',
+            ],
+            'domains' => [
+                'create' => 'Create Domains',
+                'update' => 'Update Domains',
+                'viewAny' => 'View Domains',
+                'view' => 'View Domain',
+                'delete' => 'Delete Domains',
+                'deleteAny' => 'Bulk Delete Domains',
+            ],
             'api_keys' => [
                 'create' => 'Create API Keys',
                 'update' => 'Update API Keys',

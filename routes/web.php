@@ -7,6 +7,7 @@ use App\Livewire\Auth;
 use App\Livewire\Cart;
 use App\Livewire\Client;
 use App\Livewire\Dashboard;
+use App\Livewire\Domains;
 use App\Livewire\Home;
 use App\Livewire\Invoices;
 use App\Livewire\Products;
@@ -42,6 +43,9 @@ Route::group(['middleware' => ['web', 'auth', MustVerfiyEmail::class]], function
     Route::get('/tickets/create', Tickets\Create::class)->name('tickets.create');
     Route::get('/tickets/{ticket}', Tickets\Show::class)->name('tickets.show')->middleware('can:view,ticket');
 
+    Route::get('/domains', Domains\Index::class)->name('domains');
+    Route::get('/domains/{domain}', Domains\Show::class)->name('domains.show')->whereNumber('domain')->middleware('can:view,domain');
+
     Route::get('/services', Services\Index::class)->name('services');
     Route::get('/services/{service}', Services\Show::class)->name('services.show')->middleware('can:view,service');
     Route::get('/services/{service}/upgrade', Services\Upgrade::class)->name('services.upgrade')->middleware('can:view,service');
@@ -64,6 +68,7 @@ Route::group(['middleware' => ['web', 'auth']], function () {
 });
 
 Route::get('cart', Cart::class)->name('cart')->middleware('checkout');
+Route::get('domains/search', Domains\Search::class)->name('domains.search')->middleware('checkout');
 
 Route::group(['prefix' => 'products', 'middleware' => 'checkout'], function () {
     Route::get('/{category:slug}', Products\Index::class)->name('category.show')/* ->where('category', '[A-Za-z0-9_/-]+') */;

@@ -92,6 +92,7 @@ class AdminPanelProvider extends PanelProvider
             )
             ->navigationGroups([
                 'Administration',
+                'Domains',
                 'Configuration',
                 'Extensions',
                 'System',
@@ -117,7 +118,7 @@ class AdminPanelProvider extends PanelProvider
 
         try {
             foreach (collect(Extension::where(function ($query) {
-                $query->where('enabled', true)->orWhere('type', 'server')->orWhere('type', 'gateway');
+                $query->where('enabled', true)->orWhere('type', 'server')->orWhere('type', 'gateway')->orWhere('type', 'registrar');
             })->get())->unique('extension') as $extension) {
                 $panel->discoverResources(in: base_path('extensions' . '/' . $extension->path . '/Admin/Resources'), for: $extension->namespace . '\\Admin\\Resources');
                 $panel->discoverPages(in: base_path('extensions' . '/' . $extension->path . '/Admin/Pages'), for: $extension->namespace . '\\Admin\\Pages');

@@ -4,6 +4,7 @@ namespace App\Classes;
 
 use App\Helpers\EventHelper;
 use App\Models\Category;
+use App\Models\Tld;
 use Illuminate\Support\Facades\Auth;
 
 class Navigation
@@ -35,6 +36,12 @@ class Navigation
                     'condition' => count($categories) > 0,
                     'separator' => true,
                     'icon' => 'ri-shopping-bag',
+                ],
+                [
+                    'name' => __('navigation.domains'),
+                    'url' => route('domains.search'),
+                    'condition' => Tld::where('enabled', true)->whereNotNull('registrar_id')->exists(),
+                    'icon' => 'ri-global',
                 ],
             ];
 
@@ -103,6 +110,13 @@ class Navigation
                     'icon' => 'ri-archive-stack',
                     'condition' => Auth::check(),
                     'priority' => 20,
+                ],
+                [
+                    'name' => __('navigation.domains'),
+                    'url' => route('domains'),
+                    'icon' => 'ri-global',
+                    'condition' => Auth::check() && (Auth::user()->domains()->exists() || Tld::where('enabled', true)->whereNotNull('registrar_id')->exists()),
+                    'priority' => 25,
                 ],
                 [
                     'name' => __('navigation.invoices'),

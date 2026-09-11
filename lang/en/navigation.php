@@ -7,6 +7,7 @@ return [
     'login' => 'Login',
     'register' => 'Register',
     'services' => 'Services',
+    'domains' => 'Domains',
     'invoices' => 'Invoices',
     'account' => 'Account',
     'personal_details' => 'Personal Details',

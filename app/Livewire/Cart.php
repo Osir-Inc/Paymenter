@@ -7,11 +7,14 @@ use App\Classes\Price;
 use App\Exceptions\DisplayException;
 use App\Helpers\ExtensionHelper;
 use App\Jobs\Server\CreateJob;
+use App\Models\CartItem;
+use App\Models\Domain;
 use App\Models\Invoice;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\Service;
 use App\Models\User;
+use App\Services\Domain\DomainProvisionService;
 use Exception;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -94,6 +97,38 @@ class Cart extends Component
         $this->updateTotal();
     }
 
+    /**
+     * A domain line becomes a pending Domain; it is registered (or transferred) once its invoice is paid.
+     */
+    private function createDomain(Order $order, CartItem $item, ?Invoice $invoice): void
+    {
+        $domain = $order->domains()->create([
+            'user_id' => $order->user_id,
+            'tld_id' => $item->tld_id,
+            'registrar_id' => $item->tld->registrar_id,
+            'name' => $item->domain,
+            'domain' => $item->domain_name,
+            'status' => Domain::STATUS_PENDING,
+            'action' => $item->domain_action ?: Domain::ACTION_REGISTER,
+            'years' => $item->years ?: 1,
+            'price' => $item->price->price,
+            'currency_code' => $order->currency_code,
+            'auth_code' => $item->auth_code,
+        ]);
+
+        if ($item->price->total > 0 && $invoice) {
+            $invoice->items()->create([
+                'reference_id' => $domain->id,
+                'reference_type' => Domain::class,
+                'price' => $item->price->total,
+                'quantity' => 1,
+                'description' => $domain->description($domain->action),
+            ]);
+        } else {
+            (new DomainProvisionService)->handle($domain);
+        }
+    }
+
     // Checkout
     public function checkout()
     {
@@ -128,7 +163,12 @@ class Cart extends Component
             foreach ($cart->items as $item) {
                 // An item without a price row in the cart's currency would otherwise check out free.
                 if (!$item->price->available) {
-                    throw new DisplayException(__('product.not_available', ['product' => $item->product->name]));
+                    throw new DisplayException(__('product.not_available', ['product' => $item->isDomain() ? $item->domain_name : $item->product->name]));
+                }
+
+                // Domains have no stock or per user limits
+                if ($item->isDomain()) {
+                    continue;
                 }
 
                 // Make sure we have the latest product data and lock it
@@ -168,8 +208,14 @@ class Cart extends Component
                 $invoice->save();
             }
 
-            // Create the services
+            // Create the services and domains
             foreach ($cart->items as $item) {
+                if ($item->isDomain()) {
+                    $this->createDomain($order, $item, $invoice ?? null);
+
+                    continue;
+                }
+
                 // Is it a lifetime coupon, then we can adjust the price of the service
                 if (is_object($this->coupon) && ($this->coupon->recurring === null || (int) $this->coupon->recurring == 1)) {
                     // Apply coupon only to first billing cycle (use original price for recurring)
@@ -252,6 +298,9 @@ class Cart extends Component
                 // Is it only one item? Then redirect to the service page
                 if ($order->services->count() == 1) {
                     return $this->redirect(route('services.show', $order->services->first()), true);
+                }
+                if ($order->services->count() == 0 && $order->domains->count() > 0) {
+                    return $this->redirect(route('domains'), true);
                 }
 
                 return $this->redirect(route('services'), true);

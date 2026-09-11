@@ -26,8 +26,8 @@ class Create extends Command implements PromptsForMissingInput
     {
         $name = $this->argument('name');
         $type = $this->argument('type');
-        if (!in_array($type, ['server', 'gateway', 'other'])) {
-            $this->error('Invalid extension type. Valid types are: server, gateway, event');
+        if (!in_array($type, ['server', 'gateway', 'registrar', 'other'])) {
+            $this->error('Invalid extension type. Valid types are: server, gateway, registrar, other');
 
             return;
         }
@@ -63,7 +63,7 @@ class Create extends Command implements PromptsForMissingInput
         return [
             'name' => 'What is the name of the extension?',
             'type' => function () {
-                $type = $this->choice('What type of extension?', ['server', 'gateway', 'other']);
+                $type = $this->choice('What type of extension?', ['server', 'gateway', 'registrar', 'other']);
 
                 return $type;
             },

@@ -155,6 +155,14 @@ class User extends Authenticatable implements Auditable, FilamentUser, HasAvatar
     }
 
     /**
+     * Get the user's domains
+     */
+    public function domains()
+    {
+        return $this->hasMany(Domain::class);
+    }
+
+    /**
      * Get the user's invoices.
      */
     public function invoices()

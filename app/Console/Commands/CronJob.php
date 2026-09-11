@@ -8,15 +8,18 @@ use App\Jobs\Server\SuspendJob;
 use App\Jobs\Server\TerminateJob;
 use App\Models\CronStat;
 use App\Models\DebugLog;
+use App\Models\Domain;
 use App\Models\EmailLog;
 use App\Models\Invoice;
 use App\Models\Service;
 use App\Models\ServiceUpgrade;
 use App\Models\Setting;
 use App\Models\Ticket;
+use App\Services\Domain\DomainRenewalInvoiceService;
 use App\Services\Service\RenewServiceService;
 use Exception;
 use Illuminate\Console\Command;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 
@@ -199,6 +202,75 @@ class CronJob extends Command
                     }
 
                     $number++;
+                });
+
+                return $number;
+            });
+
+            $this->runCronJob('domain_invoices_created', function ($number = 0) {
+                // Renewal invoices for domains that expire within x days
+                $renewal = new DomainRenewalInvoiceService;
+                Domain::where('status', Domain::STATUS_ACTIVE)->where('auto_renew', true)->where('expires_at', '<', now()->addDays((int) config('settings.cronjob_invoice', 7)))->get()->each(function ($domain) use (&$number, $renewal) {
+                    if ($renewal->hasPendingInvoice($domain)) {
+                        return;
+                    }
+
+                    $invoice = $renewal->create($domain);
+                    if (!$invoice) {
+                        return;
+                    }
+
+                    $this->payInvoiceWithCredits($invoice);
+                    $number++;
+                });
+
+                return $number;
+            });
+
+            $this->runCronJob('domains_expired', function ($number = 0) {
+                // Domains are never deleted by Paymenter: unpaid ones lapse at the registry
+                Domain::where('status', Domain::STATUS_ACTIVE)->where('expires_at', '<', now()->startOfDay())->get()->each(function ($domain) use (&$number) {
+                    $domain->update(['status' => Domain::STATUS_EXPIRED]);
+                    NotificationHelper::domainExpiredNotification($domain->user, $domain);
+                    $number++;
+                });
+
+                return $number;
+            });
+
+            $this->runCronJob('domain_transfers_checked', function ($number = 0) {
+                Domain::where('status', Domain::STATUS_PENDING_TRANSFER)->get()->each(function ($domain) use (&$number) {
+                    try {
+                        if (!ExtensionHelper::registrarSupports($domain->registrar, 'getTransferStatus')) {
+                            return;
+                        }
+                        $status = strtolower((string) ExtensionHelper::callDomain($domain, 'getTransferStatus'));
+                    } catch (Exception $e) {
+                        report($e);
+
+                        return;
+                    }
+
+                    if ($status === 'completed') {
+                        $info = [];
+                        try {
+                            $info = ExtensionHelper::callDomain($domain, 'getDomainInfo') ?? [];
+                        } catch (Exception $e) {
+                            report($e);
+                        }
+                        $domain->update([
+                            'status' => Domain::STATUS_ACTIVE,
+                            'registered_at' => now(),
+                            'expires_at' => isset($info['expires_at']) ? Carbon::parse($info['expires_at']) : now()->addYears($domain->years),
+                            'nameservers' => $info['nameservers'] ?? $domain->nameservers,
+                        ]);
+                        NotificationHelper::domainTransferCompletedNotification($domain->user, $domain);
+                        $number++;
+                    } elseif (in_array($status, ['failed', 'cancelled', 'rejected'])) {
+                        $domain->update(['status' => Domain::STATUS_CANCELLED]);
+                        NotificationHelper::domainTransferFailedNotification($domain->user, $domain);
+                        $number++;
+                    }
                 });
 
                 return $number;

@@ -3,9 +3,11 @@
 namespace App\Services\Invoice;
 
 use App\Models\Credit;
+use App\Models\Domain;
 use App\Models\Invoice;
 use App\Models\Service;
 use App\Models\ServiceUpgrade;
+use App\Services\Domain\DomainProvisionService;
 use App\Services\Service\RenewServiceService;
 use App\Services\ServiceUpgrade\ServiceUpgradeService;
 
@@ -32,6 +34,12 @@ class ProcessPaidInvoiceService
 
                 // Handle the upgrade
                 (new ServiceUpgradeService)->handle($serviceUpgrade);
+            } elseif ($item->reference_type == Domain::class) {
+                $domain = $item->reference;
+                if (!$domain || !($domain instanceof Domain)) {
+                    return;
+                }
+                (new DomainProvisionService)->handle($domain);
             } elseif ($item->reference_type == Credit::class) {
                 // Check if user has credits in this currency
                 $user = $invoice->user;

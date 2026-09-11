@@ -6,13 +6,16 @@ use App\Attributes\ExtensionMeta;
 use App\Classes\FilamentInput;
 use App\Enums\InvoiceTransactionStatus;
 use App\Models\BillingAgreement;
+use App\Models\Domain;
 use App\Models\Extension;
 use App\Models\Gateway;
 use App\Models\Invoice;
 use App\Models\InvoiceTransaction;
 use App\Models\Product;
+use App\Models\Registrar;
 use App\Models\Server;
 use App\Models\Service;
+use App\Models\Tld;
 use App\Models\User;
 use Exception;
 use Filament\Forms\Components\Placeholder;
@@ -24,6 +27,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use OwenIt\Auditing\Events\AuditCustom;
 use ReflectionClass;
@@ -43,7 +47,7 @@ class ExtensionHelper
 
         if ($type && $type == 'other') {
             // Filter out gateways and servers
-            $extensions = array_filter($extensions, fn ($extension) => !in_array($extension['type'], ['gateway', 'server']));
+            $extensions = array_filter($extensions, fn ($extension) => !in_array($extension['type'], ['gateway', 'server', 'registrar']));
 
             return $extensions;
         } elseif ($type) {
@@ -85,7 +89,12 @@ class ExtensionHelper
     public static function getConfig($type, $extension, $config = [])
     {
         if (empty($config)) {
-            $typeClass = ($type == 'gateway') ? Gateway::class : (($type == 'server') ? Server::class : Extension::class);
+            $typeClass = match ($type) {
+                'gateway' => Gateway::class,
+                'server' => Server::class,
+                'registrar' => Registrar::class,
+                default => Extension::class,
+            };
             $config = $typeClass::where('extension', $extension)->exists()
                 ? $typeClass::where('extension', $extension)->first()->settings->pluck('value', 'key')->toArray()
                 : [];
@@ -667,6 +676,64 @@ class ExtensionHelper
         $server = self::checkServer($service, $function);
 
         return self::getExtension('server', $server->extension, $server->settings)->$function($service, self::settingsToArray($service->product->settings), self::getServiceProperties($service), $view['name']);
+    }
+
+    /* DOMAIN / REGISTRAR RELATED FUNCTIONS */
+
+    /**
+     * Does the registrar implement an optional hook?
+     */
+    public static function registrarSupports(Registrar $registrar, string $function): bool
+    {
+        return self::hasFunction($registrar, $function);
+    }
+
+    /**
+     * Call a hook on a registrar extension
+     */
+    public static function callRegistrar(Registrar $registrar, string $function, array $args = [])
+    {
+        if (!self::hasFunction($registrar, $function)) {
+            throw new Exception('Registrar does not support the action: ' . $function);
+        }
+
+        return self::getExtension('registrar', $registrar->extension, $registrar->settings)->$function(...$args);
+    }
+
+    /**
+     * Call a domain hook on the registrar of a domain, e.g. callDomain($domain, 'setNameservers', [$nameservers])
+     */
+    public static function callDomain(Domain $domain, string $function, array $args = [])
+    {
+        if (in_array($function, ['registerDomain', 'transferDomain', 'renewDomain'])) {
+            self::recordAudit($domain, 'extension_action', [], ['action' => Str::snake($function)]);
+        }
+
+        return self::callRegistrar($domain->registrar, $function, [$domain, ...$args]);
+    }
+
+    /**
+     * Availability of a full domain name at the registrar of its TLD
+     *
+     * @return array{available: bool, premium: bool, prices: ?array}
+     */
+    public static function checkDomainAvailability(Tld $tld, string $domain): array
+    {
+        if (!$tld->registrar) {
+            throw new Exception('No registrar assigned to .' . $tld->tld);
+        }
+
+        $result = self::callRegistrar($tld->registrar, 'checkAvailability', [$domain]);
+
+        if (!is_array($result)) {
+            $result = ['available' => (bool) $result];
+        }
+
+        return [
+            'available' => (bool) ($result['available'] ?? false),
+            'premium' => (bool) ($result['premium'] ?? false),
+            'prices' => isset($result['prices']) && is_array($result['prices']) ? $result['prices'] : null,
+        ];
     }
 
     /**

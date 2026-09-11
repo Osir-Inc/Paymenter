@@ -105,6 +105,7 @@ class Updates extends Page implements HasActions, HasForms, HasTable
                     ->color(fn (string $state): string => match (strtolower($state)) {
                         'gateway' => 'info',
                         'server' => 'warning',
+                        'registrar' => 'primary',
                         default => 'success',
                     })
                     ->sortable(),

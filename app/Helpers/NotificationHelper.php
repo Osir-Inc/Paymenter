@@ -5,6 +5,7 @@ namespace App\Helpers;
 use App\Classes\PDF;
 use App\Mail\Mail;
 use App\Mail\SystemMail;
+use App\Models\Domain;
 use App\Models\EmailLog;
 use App\Models\Invoice;
 use App\Models\Notification;
@@ -204,6 +205,31 @@ class NotificationHelper
     {
         $data['service'] = $service;
         self::sendNotification('server_terminated', $data, $user);
+    }
+
+    public static function domainRegisteredNotification(User $user, Domain $domain): void
+    {
+        self::sendNotification('domain_registered', ['domain' => $domain], $user);
+    }
+
+    public static function domainRenewedNotification(User $user, Domain $domain): void
+    {
+        self::sendNotification('domain_renewed', ['domain' => $domain], $user);
+    }
+
+    public static function domainExpiredNotification(User $user, Domain $domain): void
+    {
+        self::sendNotification('domain_expired', ['domain' => $domain], $user);
+    }
+
+    public static function domainTransferCompletedNotification(User $user, Domain $domain): void
+    {
+        self::sendNotification('domain_transfer_completed', ['domain' => $domain], $user);
+    }
+
+    public static function domainTransferFailedNotification(User $user, Domain $domain): void
+    {
+        self::sendNotification('domain_transfer_failed', ['domain' => $domain], $user);
     }
 
     public static function ticketMessageNotification(User $user, TicketMessage $ticketMessage, array $data = []): void

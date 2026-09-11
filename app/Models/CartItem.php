@@ -18,12 +18,43 @@ class CartItem extends Model
         'config_options',
         'checkout_config',
         'quantity',
+        'tld_id',
+        'domain',
+        'domain_action',
+        'years',
+        'auth_code',
+        'domain_price',
     ];
 
     protected $casts = [
         'config_options' => 'array',
         'checkout_config' => 'array',
+        'years' => 'integer',
+        'auth_code' => 'encrypted',
     ];
+
+    public function tld()
+    {
+        return $this->belongsTo(Tld::class);
+    }
+
+    /**
+     * Is this line a domain registration or transfer instead of a product?
+     */
+    public function isDomain(): bool
+    {
+        return $this->tld_id !== null;
+    }
+
+    /**
+     * Full domain name of a domain line, e.g. "example.com"
+     */
+    public function domainName(): Attribute
+    {
+        return Attribute::make(
+            get: fn () => $this->tld_id ? $this->domain . '.' . $this->tld->tld : null
+        );
+    }
 
     // Set default loads
 
@@ -48,6 +79,17 @@ class CartItem extends Model
             get: function () {
                 // Resolve against the cart's currency: the invoice inherits it, while the session may have expired back to the default currency.
                 $currency = $this->cart?->currency_code ?? session('currency', config('settings.default_currency'));
+
+                // Domain lines carry the price quoted at search time (live registrar price + markup, or the TLD grid)
+                // ponytail: coupons do not apply to domains, add a coupon "applies to domains" flag if that is ever needed
+                if ($this->isDomain()) {
+                    return new Price([
+                        'price' => $this->domain_price,
+                        'currency' => Currency::find($currency),
+                        'setup_fee' => 0,
+                    ], apply_exclusive_tax: true);
+                }
+
                 $total = 0;
                 $setup_fee = 0;
                 $unavailable = false;

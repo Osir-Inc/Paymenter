@@ -5,6 +5,7 @@ namespace App\Admin\Pages;
 use App\Admin\Clusters\Extensions;
 use App\Admin\Resources\ExtensionResource;
 use App\Admin\Resources\GatewayResource;
+use App\Admin\Resources\RegistrarResource;
 use App\Admin\Resources\ServerResource;
 use App\Helpers\ExtensionHelper;
 use App\Services\Extensions\UploadExtensionService;
@@ -199,6 +200,13 @@ class Extension extends Page implements HasActions, HasTable
                                     Notification::make()
                                         ->title('Extension uploaded successfully')
                                         ->body('Gateway uploaded successfully. Please go to the <a class="text-primary-600" wire:navigate href="' . GatewayResource::getUrl() . '">Gateways</a> page to install the new gateway extension.')
+                                        ->success()
+                                        ->send();
+                                    break;
+                                case 'registrar':
+                                    Notification::make()
+                                        ->title('Extension uploaded successfully')
+                                        ->body('Registrar uploaded successfully. Please go to the <a class="text-primary-600" wire:navigate href="' . RegistrarResource::getUrl() . '">Registrars</a> page to install the new registrar extension.')
                                         ->success()
                                         ->send();
                                     break;

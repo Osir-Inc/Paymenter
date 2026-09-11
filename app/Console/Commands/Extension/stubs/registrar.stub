@@ -1,0 +1,87 @@
+<?php
+
+namespace {{ namespace }};
+
+use App\Classes\Extension\Registrar;
+use App\Models\Service;
+
+class {{ class }} extends Registrar
+{
+    /**
+     * Get all the configuration for the extension
+     *
+     * @param array $values
+     * @return array
+     */
+    public function getConfig($values = []): array
+    {
+        return [];
+    }
+
+    /**
+     * Check if the current configuration is valid
+     *
+     * @return bool|string
+     */
+    public function testConfig(): bool|string
+    {
+        return true;
+    }
+
+    /**
+     * Is the full domain name (e.g. "example.com") available?
+     */
+    public function checkAvailability(string $domain): bool
+    {
+        return false;
+    }
+
+    /**
+     * Pricing per TLD, used by the "Import TLDs" admin action.
+     *
+     * @return array ['com' => ['register' => 9.99, 'renew' => 9.99, 'transfer' => 9.99, 'currency' => 'USD', 'min_years' => 1, 'max_years' => 10]]
+     */
+    public function getTldPricing(): array
+    {
+        return [];
+    }
+
+    /**
+     * Register the domain (called when the first invoice is paid).
+     *
+     * @param Service $service
+     * @param array $settings (product settings)
+     * @param array $properties `domain` (SLD), `tld` and checkout config values
+     */
+    public function registerDomain(Service $service, $settings, $properties)
+    {
+        $domain = $this->domainName($properties);
+        $years = $this->years($service);
+
+        return false;
+    }
+
+    /**
+     * Renew the domain (called when a renewal invoice is paid).
+     */
+    public function renewDomain(Service $service, $settings, $properties)
+    {
+        return false;
+    }
+
+    /**
+     * Current nameservers.
+     */
+    public function getNameservers(Service $service, $settings, $properties): array
+    {
+        return [];
+    }
+
+    /**
+     * Replace the nameservers.
+     */
+    public function setNameservers(Service $service, $settings, $properties, array $nameservers)
+    {
+        return false;
+    }
+}

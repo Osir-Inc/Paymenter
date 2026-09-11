@@ -5,6 +5,7 @@ namespace App\Services\Extensions;
 use App\Attributes\ExtensionMeta;
 use App\Classes\Extension\Extension;
 use App\Classes\Extension\Gateway;
+use App\Classes\Extension\Registrar;
 use App\Classes\Extension\Server;
 use App\Console\Commands\Extension\Install;
 use App\Console\Commands\Extension\Upgrade;
@@ -123,6 +124,8 @@ class UploadExtensionService
                     $type['class'] = $className;
                     if (is_subclass_of($fullClassName, Server::class)) {
                         $type['type'] = 'server';
+                    } elseif (is_subclass_of($fullClassName, Registrar::class)) {
+                        $type['type'] = 'registrar';
                     } elseif (is_subclass_of($fullClassName, Gateway::class)) {
                         $type['type'] = 'gateway';
                     } elseif (is_subclass_of($fullClassName, Extension::class)) {

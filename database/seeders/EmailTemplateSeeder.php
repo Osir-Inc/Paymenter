@@ -140,6 +140,94 @@ class EmailTemplateSeeder extends Seeder
             'edit_preference_message' => 'Send me order confirmations',
             'in_app_url' => '{{ route("services") }}',
         ],
+        'domain_registered' => [
+            'subject' => 'Domain registered',
+            'body' => <<<'HTML'
+                # Domain registered
+
+                Your domain **{{ $domain->domain }}** has been registered until {{ $domain->expires_at?->format('M d, Y') }}.
+
+                <div class="action">
+                	<a class="button button-blue" href="{{ route('domains.show', $domain) }}">
+                		Manage domain
+                	</a>
+                </div>
+                HTML,
+            'in_app_title' => 'Domain registered',
+            'in_app_body' => 'Your domain {{ $domain->domain }} has been registered.',
+            'mail_enabled' => 'force',
+            'in_app_enabled' => 'choice_on',
+            'edit_preference_message' => 'Alert me about domain registrations',
+            'in_app_url' => '{{ route("domains.show", $domain) }}',
+        ],
+        'domain_renewed' => [
+            'subject' => 'Domain renewed',
+            'body' => <<<'HTML'
+                # Domain renewed
+
+                Your domain **{{ $domain->domain }}** has been renewed until {{ $domain->expires_at?->format('M d, Y') }}.
+                HTML,
+            'in_app_title' => 'Domain renewed',
+            'in_app_body' => 'Your domain {{ $domain->domain }} has been renewed until {{ $domain->expires_at?->format("M d, Y") }}.',
+            'mail_enabled' => 'force',
+            'in_app_enabled' => 'choice_on',
+            'edit_preference_message' => 'Alert me about domain renewals',
+            'in_app_url' => '{{ route("domains.show", $domain) }}',
+        ],
+        'domain_expired' => [
+            'subject' => 'Domain expired',
+            'body' => <<<'HTML'
+                # Domain expired
+
+                Your domain **{{ $domain->domain }}** expired on {{ $domain->expires_at?->format('M d, Y') }}. Pay the open renewal invoice as soon as possible to keep it, most registries delete expired domains after a grace period.
+
+                <div class="action">
+                	<a class="button button-blue" href="{{ route('domains.show', $domain) }}">
+                		Renew domain
+                	</a>
+                </div>
+                HTML,
+            'in_app_title' => 'Domain expired',
+            'in_app_body' => 'Your domain {{ $domain->domain }} has expired.',
+            'mail_enabled' => 'force',
+            'in_app_enabled' => 'choice_on',
+            'edit_preference_message' => 'Alert me about domain expirations',
+            'in_app_url' => '{{ route("domains.show", $domain) }}',
+        ],
+        'domain_transfer_completed' => [
+            'subject' => 'Domain transfer completed',
+            'body' => <<<'HTML'
+                # Domain transfer completed
+
+                The transfer of **{{ $domain->domain }}** to us has completed. The domain now expires on {{ $domain->expires_at?->format('M d, Y') }}.
+                HTML,
+            'in_app_title' => 'Domain transfer completed',
+            'in_app_body' => 'The transfer of {{ $domain->domain }} has completed.',
+            'mail_enabled' => 'force',
+            'in_app_enabled' => 'choice_on',
+            'edit_preference_message' => 'Alert me about domain transfers',
+            'in_app_url' => '{{ route("domains.show", $domain) }}',
+        ],
+        'domain_transfer_failed' => [
+            'subject' => 'Domain transfer failed',
+            'body' => <<<'HTML'
+                # Domain transfer failed
+
+                The transfer of **{{ $domain->domain }}** to us was rejected or cancelled. Check the authorization code and the transfer lock at your current registrar, then contact us.
+
+                <div class="action">
+                	<a class="button button-blue" href="{{ route('tickets.create') }}">
+                		Contact us
+                	</a>
+                </div>
+                HTML,
+            'in_app_title' => 'Domain transfer failed',
+            'in_app_body' => 'The transfer of {{ $domain->domain }} has failed.',
+            'mail_enabled' => 'force',
+            'in_app_enabled' => 'choice_on',
+            'edit_preference_message' => 'Alert me about domain transfers',
+            'in_app_url' => '{{ route("domains.show", $domain) }}',
+        ],
         'new_server_created' => [
             'subject' => 'Service activated',
             'body' => <<<'HTML'
